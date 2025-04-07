@@ -1,23 +1,23 @@
-use bevy::{prelude::*, sprite::Wireframe2d, window::EnabledButtons};
+use bevy::{prelude::*, sprite::Wireframe2dPlugin, window::EnabledButtons};
 
-const WIDTH: f64 = 800.;
-const HEIGHT: f64 = 600.;
+const WIDTH: f32 = 800.;
+const HEIGHT: f32 = 600.;
 
 #[derive(Resource)]
 struct ChessBoardPos {
-    bot_left: (f64, f64),
-    size: f64,
-    square_size: f64,
-    square_pos: Vec<(f64, f64)>, // Row major matrix
+    bot_left: (f32, f32),
+    size: f32,
+    square_size: f32,
+    square_pos: Vec<(f32, f32)>, // Row major matrix
 }
 
 impl ChessBoardPos {
-    fn new(bot_left: (f64, f64), size: f64) -> Self {
+    fn new(bot_left: (f32, f32), size: f32) -> Self {
         let square_size = size / 8.;
         let square_pos = (0..64).map(|idx| {
             let i = idx % 8;
             let j = idx / 8;
-            (bot_left.1 + (i as f64) * square_size, bot_left.0 + (j as f64) * square_size)
+            (bot_left.1 + (i as f32) * square_size, bot_left.0 + (j as f32) * square_size)
         }).collect();
         Self {
             bot_left,
@@ -84,7 +84,7 @@ fn main() {
             primary_window: Some(Window {
                 title: "Quantum Chess".into(),
                 name: Some("qhess".into()),
-                resolution: (WIDHT, HEIGHT).into(),
+                resolution: (WIDTH, HEIGHT).into(),
                 window_theme: Some(bevy::window::WindowTheme::Dark),
                 enabled_buttons: EnabledButtons {
                     maximize: false,
@@ -94,7 +94,7 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(Wireframe2dPlugin),
+        .add_plugins(Wireframe2dPlugin)
         .add_systems(Startup, setup)
         .run();
 }
