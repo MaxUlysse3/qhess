@@ -1,4 +1,4 @@
-use bevy::{prelude::*, sprite::Wireframe2dPlugin, window::EnabledButtons};
+use bevy::{prelude::*, sprite::{Anchor, Wireframe2dPlugin}, window::EnabledButtons};
 
 const WIDTH: f32 = 800.;
 const HEIGHT: f32 = 600.;
@@ -17,7 +17,8 @@ impl ChessBoardPos {
         let square_pos = (0..64).map(|idx| {
             let i = idx % 8;
             let j = idx / 8;
-            (bot_left.1 + (i as f32) * square_size, bot_left.0 + (j as f32) * square_size)
+            (bot_left.1 + (i as f32) * square_size + square_size / 2.,
+                bot_left.0 + (j as f32) * square_size + square_size / 2.)
         }).collect();
         Self {
             bot_left,
@@ -41,11 +42,11 @@ impl Default for BoardState {
         let all_empty = std::iter::repeat(Square::Empty).take(32).collect::<Vec<_>>();
 
         let board = base_line.iter()
-            .map(|p| Square::Occupied(*p, White))
-            .chain(pawn_line.iter().map(|p| Square::Occupied(*p, White)))
+            .map(|p| Square::Occupied(*p, Probability::Full, White))
+            .chain(pawn_line.iter().map(|p| Square::Occupied(*p, Probability::Full, White)))
             .chain(all_empty)
-            .chain(pawn_line.iter().map(|p| Square::Occupied(*p, Black)))
-            .chain(base_line.iter().map(|p| Square::Occupied(*p, Black)))
+            .chain(pawn_line.iter().map(|p| Square::Occupied(*p, Probability::Full, Black)))
+            .chain(base_line.iter().map(|p| Square::Occupied(*p, Probability::Full, Black)))
             .collect::<Vec<_>>();
 
         Self {
@@ -73,9 +74,15 @@ enum Team {
 use Team::*;
 
 #[derive(Debug, Copy, Clone)]
+enum Probability {
+    Full,
+    Half,
+}
+
+#[derive(Debug, Copy, Clone, Component)]
 enum Square {
     Empty,
-    Occupied(Piece, Team),
+    Occupied(Piece, Probability, Team),
 }
 
 fn main() {
@@ -95,9 +102,43 @@ fn main() {
             ..default()
         }))
         .add_plugins(Wireframe2dPlugin)
-        .add_systems(Startup, setup)
+        .insert_resource(ChessBoardPos::new((-300., -300.), HEIGHT))
+        .add_systems(Startup, draw_board)
         .run();
 }
 
-fn setup(mut commands:  Commands, asset_server: Res<AssetServer>) {
+fn draw_board(mut commands:  Commands, board_pos: Res<ChessBoardPos>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
+    commands.spawn(Camera2d);
+
+    let board = BoardState::default();
+    let mut squares = vec![];
+
+    for _ in board_pos.square_pos.iter() {
+        squares.push(meshes.add(Rectangle::new(board_pos.square_size, board_pos.square_size)));
+    }
+
+    for (i, shape) in squares.into_iter().enumerate() {
+        let color = if (i % 8 + i / 8) % 2 == 0 {
+            Color::srgb(0., 0., 0.)
+        } else {
+            Color::srgb(1., 1., 1.)
+        };
+
+        commands.spawn((
+            Mesh2d(shape),
+            MeshMaterial2d(materials.add(color)),
+            Transform::from_xyz(
+                board_pos.square_pos[i].0,
+                board_pos.square_pos[i].1,
+                0.
+            ),
+            board.squares[i],
+            Anchor::Center,
+        ));
+    }
+
+    commands.spawn((Mesh2d(meshes.add(Circle::new(10.))),
+            MeshMaterial2d(materials.add(Color::srgb(1., 0., 0.))),
+            Transform::from_xyz(0., 0.,0.)));
 }
